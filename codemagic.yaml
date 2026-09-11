@@ -39,7 +39,7 @@ workflows:
                 *ldpi)    hedef=320 ;;
               esac
               boyut_once=$(du -h "$dosya" | cut -f1)
-              convert "$dosya" -resize "${hedef}x${hedef}>" -strip -quality 85 "$dosya"
+              convert "$dosya" -resize "${hedef}x${hedef}>" -strip -colors 256 "$dosya"
               boyut_sonra=$(du -h "$dosya" | cut -f1)
               echo "$dosya ($ad, hedef=$hedef): $boyut_once -> $boyut_sonra"
             fi
