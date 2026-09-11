@@ -1,0 +1,27 @@
+workflows:
+  android-test-apk:
+    name: Gas Station Kingdom - Android Test APK
+    max_build_duration: 30
+    environment:
+      node: latest
+      java: 21
+    scripts:
+      - name: Bağımlılıkları kur
+        script: npm install
+      - name: Android platformunu ekle (yoksa)
+        script: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+      - name: Splash screen / ikon görsellerini üret
+        script: npx @capacitor/assets generate --android
+      - name: Android SDK konumunu ayarla
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Web dosyalarını native projeye senkronize et
+        script: npx cap sync android
+      - name: Android APK derle (imzasız test sürümü)
+        script: |
+          cd android
+          ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/**/*.apk
