@@ -1,0 +1,18 @@
+{
+  "name": "gas-station-kingdom",
+  "version": "1.0.0",
+  "description": "Gas Station Kingdom - akaryakıt istasyonu simülasyon oyunu",
+  "scripts": {
+    "build": "echo 'statik dosyalar www/ klasöründe, ek derleme adımı yok'"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/android": "^8.5.1",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor-firebase/authentication": "latest"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.1",
+    "@capacitor/assets": "latest"
+  }
+}
