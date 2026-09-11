@@ -1,0 +1,56 @@
+workflows:
+  android-test-apk:
+    name: Gas Station Kingdom - Android Test APK
+    max_build_duration: 30
+    environment:
+      node: latest
+      java: 21
+    scripts:
+      - name: Bağımlılıkları kur
+        script: npm install
+      - name: Android platformunu ekle (yoksa)
+        script: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+      - name: Splash screen / ikon görsellerini üret
+        script: npx @capacitor/assets generate --android
+      - name: Şişirilmiş splash görsellerini düzelt (bilinen @capacitor/assets hatası)
+        script: |
+          # @capacitor/assets, splash.png dosyalarini once dogru/kucuk boyutta
+          # uretip sonra kendi uzerine COK BUYUK (neredeyse ham boyut) bir
+          # kopyayla eziyor (bilinen hata: ionic-team/capacitor-assets#588).
+          # Her yogunluk klasorundeki splash.png'yi, o klasore uygun makul bir
+          # azami boyuta (buyukse kucult, kucukse dokunma) yeniden sikistiriyoruz.
+          # NOT: yogunluk adlari birbirinin alt dizesi oldugu icin (xhdpi,
+          # xxxhdpi icinde de geciyor), esleme EN OZELDEN EN GENELE 'case' ile
+          # yapiliyor - substring/contains kontrolu YANLIS sonuc verir.
+          for klasor in android/app/src/main/res/drawable*/; do
+            dosya="${klasor}splash.png"
+            if [ -f "$dosya" ]; then
+              ad=$(basename "$klasor")
+              hedef=800
+              case "$ad" in
+                *xxxhdpi) hedef=1920 ;;
+                *xxhdpi)  hedef=1600 ;;
+                *xhdpi)   hedef=1280 ;;
+                *hdpi)    hedef=800 ;;
+                *mdpi)    hedef=480 ;;
+                *ldpi)    hedef=320 ;;
+              esac
+              boyut_once=$(du -h "$dosya" | cut -f1)
+              convert "$dosya" -resize "${hedef}x${hedef}>" -strip -quality 85 "$dosya"
+              boyut_sonra=$(du -h "$dosya" | cut -f1)
+              echo "$dosya ($ad, hedef=$hedef): $boyut_once -> $boyut_sonra"
+            fi
+          done
+      - name: Android SDK konumunu ayarla
+        script: echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Web dosyalarını native projeye senkronize et
+        script: npx cap sync android
+      - name: Android APK derle (imzasız test sürümü)
+        script: |
+          cd android
+          ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/**/*.apk
