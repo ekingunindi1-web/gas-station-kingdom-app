@@ -229,6 +229,60 @@ workflows:
           echo "--- cap sync SONRASI Info.plist Facebook alanlari (kalici olmali) ---"
           /usr/libexec/PlistBuddy -c "Print :FacebookAppID" "$INFOPLIST"
           /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$INFOPLIST"
+      - name: Google girişi URL şemasını ekle (REVERSED_CLIENT_ID olmadan iOS'ta anında çöküyor)
+        script: |
+          # Google Sign-In iOS SDK'si, OAuth geri donusunu yakalamak icin
+          # GoogleService-Info.plist'teki REVERSED_CLIENT_ID degerinin
+          # Info.plist'te bir URL semasi olarak tanimli olmasini ZORUNLU
+          # olarak istiyor - yoksa buton basilir basilmaz cokuyor (bilinen davranis).
+          INFOPLIST="ios/App/App/Info.plist"
+          GSPLIST="ios/App/App/GoogleService-Info.plist"
+          if [ -f "$GSPLIST" ]; then
+            REVERSED=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" "$GSPLIST" 2>/dev/null)
+            if [ -n "$REVERSED" ]; then
+              /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:1 dict" "$INFOPLIST" 2>/dev/null || true
+              /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:1:CFBundleURLSchemes array" "$INFOPLIST" 2>/dev/null || true
+              /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:1:CFBundleURLSchemes:0 string $REVERSED" "$INFOPLIST" 2>/dev/null || true
+              echo "REVERSED_CLIENT_ID eklendi: $REVERSED"
+            else
+              echo "UYARI: REVERSED_CLIENT_ID okunamadi, Google girisi yine cokebilir."
+            fi
+          else
+            echo "UYARI: GoogleService-Info.plist yok, Google URL semasi eklenemedi."
+          fi
+          echo "--- guncel CFBundleURLTypes ---"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$INFOPLIST"
+      - name: Apple girişi için "Sign in with Apple" entitlement'ını ekle
+        script: |
+          # "AuthorizationError error 1000" hatasi, Xcode projesinde
+          # "Sign in with Apple" YETENEĞİNİN (entitlement) hic tanimli
+          # olmamasindan kaynaklaniyor - App ID'de acik olmasi yetmiyor,
+          # projenin kendi .entitlements dosyasi da olmali.
+          cat > ios/App/App/App.entitlements << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          	<key>com.apple.developer.applesignin</key>
+          	<array>
+          		<string>Default</string>
+          	</array>
+          </dict>
+          </plist>
+          PLIST
+          cat > /tmp/entitlement_ekle.rb << 'RUBY'
+          require 'xcodeproj'
+          proje = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          hedef = proje.targets.find { |t| t.name == 'App' }
+          hedef.build_configurations.each do |config|
+            config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
+          end
+          proje.save
+          puts "CODE_SIGN_ENTITLEMENTS ayarlandi: App/App.entitlements"
+          RUBY
+          ruby /tmp/entitlement_ekle.rb
+          echo "--- build.gradle degil, project.pbxproj icinde CODE_SIGN_ENTITLEMENTS ---"
+          grep -n "CODE_SIGN_ENTITLEMENTS" ios/App/App.xcodeproj/project.pbxproj
       - name: Kod imzalama ayarlarını uygula
         script: xcode-project use-profiles
       - name: iOS IPA derle (Ad Hoc test sürümü)
