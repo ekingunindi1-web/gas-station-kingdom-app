@@ -163,6 +163,23 @@ workflows:
           if [ ! -d "ios" ]; then
             npx cap add ios
           fi
+      - name: Facebook SDK çökmesini önle (kullanmadığımız ama eklenti dahil ediyor)
+        script: |
+          # @capacitor-firebase/authentication, Facebook girisini kullanmasak
+          # bile FBSDKCoreKit'i native tarafa dahil ediyor. Bu SDK, Info.plist'te
+          # FacebookAppID/FacebookClientToken yoksa ACILISTA KASITLI OLARAK
+          # cokuyor (bilinen davranis). Facebook'u hic kullanmayacagimiz icin
+          # sadece bu cokmeyi durdurmaya yetecek sahte degerler ekliyoruz.
+          INFOPLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :FacebookAppID string 0000000000000000" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :FacebookClientToken string 0000000000000000000000000000000" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :FacebookDisplayName string GasStationKingdom" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string fb0000000000000000" "$INFOPLIST" 2>/dev/null || true
+          echo "--- Info.plist Facebook alanlari ---"
+          /usr/libexec/PlistBuddy -c "Print :FacebookAppID" "$INFOPLIST" 2>/dev/null || echo "(eklenemedi)"
       - name: GoogleService-Info.plist'i yerleştir
         script: |
           if [ ! -f "GoogleService-Info.plist" ]; then
