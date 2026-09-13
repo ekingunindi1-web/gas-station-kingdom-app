@@ -174,6 +174,37 @@ workflows:
         script: npx @capacitor/assets generate --ios
       - name: Web dosyalarını native projeye senkronize et
         script: npx cap sync ios
+      - name: GoogleService-Info.plist'i Xcode projesine KAYDET (iOS'ta kopyalamak yetmiyor)
+        script: |
+          # iOS'ta bir dosyanin uygulama paketine girmesi icin Xcode projesine
+          # (project.pbxproj) kayitli olmasi gerekir - klasore kopyalamak
+          # YETMEZ. Android'de google-services.json icin bu gerekmiyordu,
+          # iOS'ta ise dosya pakete girmezse Firebase acilista "yapilandirma
+          # dosyasi yok" diyerek uygulamayi cokertir.
+          if [ ! -f "ios/App/App/GoogleService-Info.plist" ]; then
+            echo "UYARI: ios/App/App/GoogleService-Info.plist yok, kayit atlaniyor."
+          else
+            cat > /tmp/plist_kaydet.rb << 'RUBY'
+          require 'xcodeproj'
+          proje = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          hedef = proje.targets.find { |t| t.name == 'App' }
+          grup = proje.main_group.find_subpath('App', true)
+          zaten = grup.files.find { |f| f.path == 'GoogleService-Info.plist' }
+          if zaten
+            puts "Zaten kayitli: GoogleService-Info.plist"
+          else
+            ref = grup.new_file('GoogleService-Info.plist')
+            hedef.add_resources([ref])
+            proje.save
+            puts "Xcode projesine eklendi: GoogleService-Info.plist"
+          end
+          RUBY
+            ruby /tmp/plist_kaydet.rb
+          fi
+          echo "--- project.pbxproj icinde GoogleService-Info.plist gecen satirlar ---"
+          grep -n "GoogleService-Info.plist" ios/App/App.xcodeproj/project.pbxproj || echo "(BULUNAMADI - kayit basarisiz!)"
+          echo "--- GoogleService-Info.plist icindeki BUNDLE_ID ---"
+          /usr/libexec/PlistBuddy -c "Print :BUNDLE_ID" ios/App/App/GoogleService-Info.plist 2>/dev/null || echo "(okunamadi)"
       - name: Facebook SDK çökmesini önle (kullanmadığımız ama eklenti dahil ediyor)
         script: |
           # @capacitor-firebase/authentication, Facebook girisini kullanmasak
