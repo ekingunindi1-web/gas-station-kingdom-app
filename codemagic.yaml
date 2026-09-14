@@ -473,6 +473,18 @@ workflows:
           ruby /tmp/entitlement_ekle.rb
           echo "--- build.gradle degil, project.pbxproj icinde CODE_SIGN_ENTITLEMENTS ---"
           grep -n "CODE_SIGN_ENTITLEMENTS" ios/App/App.xcodeproj/project.pbxproj
+      - name: Build numarasını artır (Apple, aynı numarayı iki kez kabul etmiyor)
+        script: |
+          # Apple, App Store Connect'e her yuklemenin bir oncekinden YUKSEK bir
+          # CFBundleVersion (build numarasi) tasimasini zorunlu tutuyor - sabit "1"
+          # kullanmak "bundle version must be higher" hatasina yol aciyor.
+          # Codemagic'in kendi otomatik artan PROJECT_BUILD_NUMBER degiskenini
+          # kullanarak, Apple Developer'dan ayrica bir ID aramaya gerek kalmadan
+          # her build'de kesin olarak farkli/yuksek bir numara garantiliyoruz.
+          cd ios/App
+          agvtool new-version -all $PROJECT_BUILD_NUMBER
+          cd ../..
+          echo "Yeni build numarasi: $PROJECT_BUILD_NUMBER"
       - name: Kod imzalama ayarlarını uygula
         script: xcode-project use-profiles
       - name: iOS IPA derle (App Store / TestFlight sürümü)
