@@ -312,3 +312,177 @@ workflows:
             --scheme "App"
     artifacts:
       - build/ios/ipa/*.ipa
+
+  ios-testflight:
+    name: Gas Station Kingdom - iOS TestFlight
+    max_build_duration: 60
+    integrations:
+      app_store_connect: gas-station-ios
+    environment:
+      node: latest
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.ekingunindi.gasstationkingdom
+    scripts:
+      - name: Bağımlılıkları kur
+        script: npm install
+      - name: iOS platformunu ekle (yoksa)
+        script: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+      - name: GoogleService-Info.plist'i yerleştir
+        script: |
+          if [ ! -f "GoogleService-Info.plist" ]; then
+            echo "UYARI: GoogleService-Info.plist depoda bulunamadi — bu dosyayi Firebase Console'dan (iOS uygulamasi eklendikten sonra) alip depoya eklemen gerekiyor. Native Google/Apple girisi bu dosya olmadan calismaz."
+          else
+            cp GoogleService-Info.plist ios/App/App/GoogleService-Info.plist
+          fi
+      - name: Splash / ikon görsellerini üret
+        script: npx @capacitor/assets generate --ios
+      - name: Web dosyalarını native projeye senkronize et
+        script: npx cap sync ios
+      - name: GoogleService-Info.plist'i Xcode projesine KAYDET (iOS'ta kopyalamak yetmiyor)
+        script: |
+          # iOS'ta bir dosyanin uygulama paketine girmesi icin Xcode projesine
+          # (project.pbxproj) kayitli olmasi gerekir - klasore kopyalamak
+          # YETMEZ. Android'de google-services.json icin bu gerekmiyordu,
+          # iOS'ta ise dosya pakete girmezse Firebase acilista "yapilandirma
+          # dosyasi yok" diyerek uygulamayi cokertir.
+          if [ ! -f "ios/App/App/GoogleService-Info.plist" ]; then
+            echo "UYARI: ios/App/App/GoogleService-Info.plist yok, kayit atlaniyor."
+          else
+            cat > /tmp/plist_kaydet.rb << 'RUBY'
+          require 'xcodeproj'
+          proje = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          hedef = proje.targets.find { |t| t.name == 'App' }
+          grup = proje.main_group.find_subpath('App', true)
+          zaten = grup.files.find { |f| f.path == 'GoogleService-Info.plist' }
+          if zaten
+            puts "Zaten kayitli: GoogleService-Info.plist"
+          else
+            ref = grup.new_file('GoogleService-Info.plist')
+            hedef.add_resources([ref])
+            proje.save
+            puts "Xcode projesine eklendi: GoogleService-Info.plist"
+          end
+          RUBY
+            ruby /tmp/plist_kaydet.rb
+          fi
+          echo "--- project.pbxproj icinde GoogleService-Info.plist gecen satirlar ---"
+          grep -n "GoogleService-Info.plist" ios/App/App.xcodeproj/project.pbxproj || echo "(BULUNAMADI - kayit basarisiz!)"
+          echo "--- GoogleService-Info.plist icindeki BUNDLE_ID ---"
+          /usr/libexec/PlistBuddy -c "Print :BUNDLE_ID" ios/App/App/GoogleService-Info.plist 2>/dev/null || echo "(okunamadi)"
+      - name: "Uygulama adındaki boşluk sorununu düzelt (iOS, 12+ karakterde boşlukları siliyor)"
+        script: |
+          # Bilinen, Apple'in resmi olarak belgelemedigi bir davranis: 12
+          # karakteri asan CFBundleDisplayName degerleri GERCEK cihazda
+          # (simulatorde degil) bosluklari siliyor. Topluluk cozumu: Xcode
+          # projesindeki PRODUCT_NAME build ayarini acikca, boslukla, elle
+          # vermek. Garantisi yok ama zararsiz bir deneme.
+          cat > /tmp/urun_adi.rb << 'RUBY'
+          require 'xcodeproj'
+          proje = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          hedef = proje.targets.find { |t| t.name == 'App' }
+          hedef.build_configurations.each do |config|
+            config.build_settings['PRODUCT_NAME'] = 'Gas Station Kingdom'
+          end
+          proje.save
+          puts "PRODUCT_NAME ayarlandi: Gas Station Kingdom"
+          RUBY
+          ruby /tmp/urun_adi.rb
+          echo "--- project.pbxproj icinde PRODUCT_NAME ---"
+          grep -n "PRODUCT_NAME" ios/App/App.xcodeproj/project.pbxproj
+      - name: Facebook SDK çökmesini önle (kullanmadığımız ama eklenti dahil ediyor)
+        script: |
+          # @capacitor-firebase/authentication, Facebook girisini kullanmasak
+          # bile FBSDKCoreKit'i native tarafa dahil ediyor. Bu SDK, Info.plist'te
+          # FacebookAppID/FacebookClientToken yoksa ACILISTA KASITLI OLARAK
+          # cokuyor (bilinen davranis). Facebook'u hic kullanmayacagimiz icin
+          # sadece bu cokmeyi durdurmaya yetecek sahte degerler ekliyoruz.
+          # ONEMLI: bu adim MUTLAKA "cap sync ios"tan SONRA calismali - once
+          # denedigimizde sync, bizim eklentimizi eziyordu (cokme devam etti).
+          INFOPLIST="ios/App/App/Info.plist"
+          /usr/libexec/PlistBuddy -c "Delete :FacebookAppID" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :FacebookAppID string 0000000000000000" "$INFOPLIST"
+          /usr/libexec/PlistBuddy -c "Delete :FacebookClientToken" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :FacebookClientToken string 0000000000000000000000000000000" "$INFOPLIST"
+          /usr/libexec/PlistBuddy -c "Delete :FacebookDisplayName" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :FacebookDisplayName string GasStationKingdom" "$INFOPLIST"
+          /usr/libexec/PlistBuddy -c "Delete :CFBundleURLTypes" "$INFOPLIST" 2>/dev/null || true
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes array" "$INFOPLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0 dict" "$INFOPLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes array" "$INFOPLIST"
+          /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:0:CFBundleURLSchemes:0 string fb0000000000000000" "$INFOPLIST"
+          echo "--- cap sync SONRASI Info.plist Facebook alanlari (kalici olmali) ---"
+          /usr/libexec/PlistBuddy -c "Print :FacebookAppID" "$INFOPLIST"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$INFOPLIST"
+      - name: Google girişi URL şemasını ekle (REVERSED_CLIENT_ID olmadan iOS'ta anında çöküyor)
+        script: |
+          # Google Sign-In iOS SDK'si, OAuth geri donusunu yakalamak icin
+          # GoogleService-Info.plist'teki REVERSED_CLIENT_ID degerinin
+          # Info.plist'te bir URL semasi olarak tanimli olmasini ZORUNLU
+          # olarak istiyor - yoksa buton basilir basilmaz cokuyor (bilinen davranis).
+          INFOPLIST="ios/App/App/Info.plist"
+          GSPLIST="ios/App/App/GoogleService-Info.plist"
+          if [ -f "$GSPLIST" ]; then
+            REVERSED=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" "$GSPLIST" 2>/dev/null)
+            if [ -n "$REVERSED" ]; then
+              /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:1 dict" "$INFOPLIST" 2>/dev/null || true
+              /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:1:CFBundleURLSchemes array" "$INFOPLIST" 2>/dev/null || true
+              /usr/libexec/PlistBuddy -c "Add :CFBundleURLTypes:1:CFBundleURLSchemes:0 string $REVERSED" "$INFOPLIST" 2>/dev/null || true
+              echo "REVERSED_CLIENT_ID eklendi: $REVERSED"
+            else
+              echo "UYARI: REVERSED_CLIENT_ID okunamadi, Google girisi yine cokebilir."
+            fi
+          else
+            echo "UYARI: GoogleService-Info.plist yok, Google URL semasi eklenemedi."
+          fi
+          echo "--- guncel CFBundleURLTypes ---"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes" "$INFOPLIST"
+      - name: Apple girişi için "Sign in with Apple" entitlement'ını ekle
+        script: |
+          # "AuthorizationError error 1000" hatasi, Xcode projesinde
+          # "Sign in with Apple" YETENEĞİNİN (entitlement) hic tanimli
+          # olmamasindan kaynaklaniyor - App ID'de acik olmasi yetmiyor,
+          # projenin kendi .entitlements dosyasi da olmali.
+          cat > ios/App/App/App.entitlements << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+          	<key>com.apple.developer.applesignin</key>
+          	<array>
+          		<string>Default</string>
+          	</array>
+          </dict>
+          </plist>
+          PLIST
+          cat > /tmp/entitlement_ekle.rb << 'RUBY'
+          require 'xcodeproj'
+          proje = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          hedef = proje.targets.find { |t| t.name == 'App' }
+          hedef.build_configurations.each do |config|
+            config.build_settings['CODE_SIGN_ENTITLEMENTS'] = 'App/App.entitlements'
+          end
+          proje.save
+          puts "CODE_SIGN_ENTITLEMENTS ayarlandi: App/App.entitlements"
+          RUBY
+          ruby /tmp/entitlement_ekle.rb
+          echo "--- build.gradle degil, project.pbxproj icinde CODE_SIGN_ENTITLEMENTS ---"
+          grep -n "CODE_SIGN_ENTITLEMENTS" ios/App/App.xcodeproj/project.pbxproj
+      - name: Kod imzalama ayarlarını uygula
+        script: xcode-project use-profiles
+      - name: iOS IPA derle (App Store / TestFlight sürümü)
+        script: |
+          xcode-project build-ipa \
+            --project "ios/App/App.xcodeproj" \
+            --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
