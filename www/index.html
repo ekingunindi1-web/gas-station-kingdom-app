@@ -1216,28 +1216,20 @@ function sehirIciGirisKamyonGuncelle(ts){
 
   /* istasyon (pompa) noktasina girmeden once: baska arac orada mi kontrol et.
      2. bacak (index 1) bitip 3. bacaga (pompaya yanasma) gecerken uygulanir. */
-  if(sehirIciGirisKamyonSeg===1 && sehirIciGirisKamyonT>=1 &&
-     SEHIR_ICI_ISTASYON_MESGUL!==null && SEHIR_ICI_ISTASYON_MESGUL!=="kamyon"){
-    sehirIciGirisKamyonCiz(b, b.x2, b.y2);
-    return;
-  }
-
   if(b.bekle || b.yolKontrol){
     if(!sehirIciGirisKamyonBekliyor){
       sehirIciGirisKamyonBekliyor=true;
       sehirIciGirisKamyonBeklemeTs=ts;
-      if(b.bekle) SEHIR_ICI_ISTASYON_MESGUL="kamyon"; /* pompaya vardi, istasyonu kilitle */
     }
     var devamEt;
     if(b.yolKontrol){
-      devamEt = sehirIciYolAcikMi(b.kontrolX,b.kontrolY,SEHIR_ICI_GIRIS_GUVENLI_MESAFE,ts);
+      devamEt = sehirIciYolAcikMi(b.kontrolX,b.kontrolY,SEHIR_ICI_GIRIS_GUVENLI_MESAFE,ts,"kamyon");
     } else {
       devamEt = (ts-sehirIciGirisKamyonBeklemeTs) >= b.bekle/Math.max(carpan,0.0001);
     }
     sehirIciGirisKamyonCiz(b, prev.x2, prev.y2);
     if(devamEt){
       sehirIciGirisKamyonBekliyor=false;
-      if(b.bekle && SEHIR_ICI_ISTASYON_MESGUL==="kamyon") SEHIR_ICI_ISTASYON_MESGUL=null; /* pompadan ayriliyor, kilidi birak */
       sehirIciGirisKamyonSeg=(sehirIciGirisKamyonSeg+1)%bacaklar.length;
     }
     return;
@@ -1252,9 +1244,11 @@ function sehirIciGirisKamyonGuncelle(ts){
       /* rota bitti (arac zaten sahne disinda, gorunmez) — yeniden (2650,1400)'den
          doğmadan once, son doğuştan bu yana yeterli bosluk gecmis mi kontrol et */
       if(ts-SEHIR_ICI_GIRIS_SON_TS < SEHIR_ICI_GIRIS_SONRAKI_BEKLEME){
-        sehirIciGirisKamyonCiz(b, b.x2, b.y2);
+        sehirIciGirisKamyonEl.style.display="none";
+        sehirIciGirisKamyonKonum=null;
         return;
       }
+      sehirIciGirisKamyonEl.style.display="";
       SEHIR_ICI_GIRIS_SON_TS=ts;
       SEHIR_ICI_GIRIS_SONRAKI_BEKLEME=1500+Math.random()*2500;
       sehirIciGirisKamyonSeg=0; sehirIciGirisKamyonT=0;
@@ -1262,8 +1256,19 @@ function sehirIciGirisKamyonGuncelle(ts){
       sehirIciGirisKamyonCiz(ilk, ilk.x1, ilk.y1);
       return;
     }
+    /* istasyona giris (seg 1->2): istasyon doluysa 2. bacagin sonunda bekle.
+       Kilit, arac ana yola baglanana (seg 7->8) kadar tutulur — ana istasyondaki gibi. */
+    if(sehirIciGirisKamyonSeg===1){
+      if(SEHIR_ICI_ISTASYON_MESGUL!==null && SEHIR_ICI_ISTASYON_MESGUL!=="kamyon"){
+        sehirIciGirisKamyonT=1;
+        sehirIciGirisKamyonCiz(b, b.x2, b.y2);
+        return;
+      }
+      SEHIR_ICI_ISTASYON_MESGUL="kamyon";
+    }
     sehirIciGirisKamyonT=0;
     x=b.x2; y=b.y2;
+    if(sehirIciGirisKamyonSeg===7 && SEHIR_ICI_ISTASYON_MESGUL==="kamyon") SEHIR_ICI_ISTASYON_MESGUL=null; /* ana yola baglandi, istasyonu birak */
     sehirIciGirisKamyonSeg=(sehirIciGirisKamyonSeg+1)%bacaklar.length;
   } else {
     x=b.x1+dx*sehirIciGirisKamyonT; y=b.y1+dy*sehirIciGirisKamyonT;
@@ -1324,10 +1329,11 @@ function sehirIciGirisAracB1Guncelle(ts){
   if(!sehirIciGirisAracB1El) return;
   if(sehirIciGirisAracB1IlkTs===null) sehirIciGirisAracB1IlkTs=ts;
   if(ts-sehirIciGirisAracB1IlkTs < sehirIciGirisAracB1IlkGecikme){
-    var ilkB=SEHIR_ICI_GIRIS_BACAK_B1[0];
-    sehirIciGirisAracB1Ciz(ilkB, ilkB.x1, ilkB.y1);
+    sehirIciGirisAracB1El.style.display="none"; /* beklerken hic gorunmesin */
+    sehirIciGirisAracB1Konum=null;
     return;
   }
+  sehirIciGirisAracB1El.style.display="";
   var carpan = hareketHizCarpani();
   var dt = sehirIciGirisAracB1SonTs==null ? 16 : Math.min(ts-sehirIciGirisAracB1SonTs,100);
   sehirIciGirisAracB1SonTs=ts;
@@ -1337,17 +1343,10 @@ function sehirIciGirisAracB1Guncelle(ts){
   var b=bacaklar[sehirIciGirisAracB1Seg];
   var prev=bacaklar[sehirIciGirisAracB1Seg-1] || bacaklar[bacaklar.length-1];
 
-  if(sehirIciGirisAracB1Seg===1 && sehirIciGirisAracB1T>=1 &&
-     SEHIR_ICI_ISTASYON_MESGUL!==null && SEHIR_ICI_ISTASYON_MESGUL!=="aracB1"){
-    sehirIciGirisAracB1Ciz(b, b.x2, b.y2);
-    return;
-  }
-
   if(b.bekle || b.yolKontrol){
     if(!sehirIciGirisAracB1Bekliyor){
       sehirIciGirisAracB1Bekliyor=true;
       sehirIciGirisAracB1BeklemeTs=ts;
-      if(b.bekle) SEHIR_ICI_ISTASYON_MESGUL="aracB1";
     }
     var devamEt;
     if(b.yolKontrol){
@@ -1358,7 +1357,6 @@ function sehirIciGirisAracB1Guncelle(ts){
     sehirIciGirisAracB1Ciz(b, prev.x2, prev.y2);
     if(devamEt){
       sehirIciGirisAracB1Bekliyor=false;
-      if(b.bekle && SEHIR_ICI_ISTASYON_MESGUL==="aracB1") SEHIR_ICI_ISTASYON_MESGUL=null;
       sehirIciGirisAracB1Seg=(sehirIciGirisAracB1Seg+1)%bacaklar.length;
     }
     return;
@@ -1371,9 +1369,11 @@ function sehirIciGirisAracB1Guncelle(ts){
   if(sehirIciGirisAracB1T>=1){
     if(sehirIciGirisAracB1Seg===sonBacakIndex){
       if(ts-SEHIR_ICI_GIRIS_ARAC_B1_SON_TS < SEHIR_ICI_GIRIS_ARAC_B1_SONRAKI_BEKLEME){
-        sehirIciGirisAracB1Ciz(b, b.x2, b.y2);
+        sehirIciGirisAracB1El.style.display="none";
+        sehirIciGirisAracB1Konum=null;
         return;
       }
+      sehirIciGirisAracB1El.style.display="";
       SEHIR_ICI_GIRIS_ARAC_B1_SON_TS=ts;
       SEHIR_ICI_GIRIS_ARAC_B1_SONRAKI_BEKLEME=1500+Math.random()*2500;
       sehirIciGirisAracB1Seg=0; sehirIciGirisAracB1T=0;
@@ -1381,8 +1381,17 @@ function sehirIciGirisAracB1Guncelle(ts){
       sehirIciGirisAracB1Ciz(ilk, ilk.x1, ilk.y1);
       return;
     }
+    if(sehirIciGirisAracB1Seg===1){
+      if(SEHIR_ICI_ISTASYON_MESGUL!==null && SEHIR_ICI_ISTASYON_MESGUL!=="aracB1"){
+        sehirIciGirisAracB1T=1;
+        sehirIciGirisAracB1Ciz(b, b.x2, b.y2);
+        return;
+      }
+      SEHIR_ICI_ISTASYON_MESGUL="aracB1";
+    }
     sehirIciGirisAracB1T=0;
     x=b.x2; y=b.y2;
+    if(sehirIciGirisAracB1Seg===7 && SEHIR_ICI_ISTASYON_MESGUL==="aracB1") SEHIR_ICI_ISTASYON_MESGUL=null;
     sehirIciGirisAracB1Seg=(sehirIciGirisAracB1Seg+1)%bacaklar.length;
   } else {
     x=b.x1+dx*sehirIciGirisAracB1T; y=b.y1+dy*sehirIciGirisAracB1T;
