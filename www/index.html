@@ -2649,15 +2649,43 @@ document.querySelectorAll("[data-saglayici]").forEach(function(b){
         var webSaglayici = tur==="Apple"
           ? appleSaglayici.credential({idToken:cred.idToken, rawNonce:cred.nonce})
           : firebase.auth.GoogleAuthProvider.credential(cred.idToken);
-        return fbAuth.signInWithCredential(webSaglayici);
-      }).then(function(webSonuc){
-        b.disabled = false;
-        firebaseUid = webSonuc.user.uid;
-        oyuncu = webSonuc.user.displayName || oyuncu || "Deniz";
-        fbDb.collection("oyuncular").doc(firebaseUid).get().then(function(doc){
-          if(doc.exists && kayitliVeriyiUygula(doc.data())) return;
-          goster("e-hikaye"); hikayeCiz();
-        }).catch(function(){ goster("e-hikaye"); hikayeCiz(); });
+        /* hesap secimi burada TAMAMLANMIS; geriye sadece Firebase ile tek bir
+           aglasma kaldigi icin bekleme pop-up'i simdi gosteriliyor */
+        var zamanAsimiOldu = false;
+        girisBekleniyorGoster();
+        var zamanAsimiTs = setTimeout(function(){
+          zamanAsimiOldu = true;
+          girisBasarisizGoster();
+          b.disabled = false;
+        }, 7000);
+        fbAuth.signInWithCredential(webSaglayici).then(function(webSonuc){
+          if(zamanAsimiOldu){
+            /* kullaniciya zaten "basarisiz, tekrar dene" gosterildi; gec gelen
+               basari sessizce oyuna gecsin, ayrica bir popup gostermeye gerek yok */
+            firebaseUid = webSonuc.user.uid;
+            oyuncu = webSonuc.user.displayName || oyuncu || "Deniz";
+            fbDb.collection("oyuncular").doc(firebaseUid).get().then(function(doc){
+              if(doc.exists && kayitliVeriyiUygula(doc.data())) return;
+              goster("e-hikaye"); hikayeCiz();
+            }).catch(function(){ goster("e-hikaye"); hikayeCiz(); });
+            return;
+          }
+          clearTimeout(zamanAsimiTs);
+          girisPopupKapat();
+          b.disabled = false;
+          firebaseUid = webSonuc.user.uid;
+          oyuncu = webSonuc.user.displayName || oyuncu || "Deniz";
+          fbDb.collection("oyuncular").doc(firebaseUid).get().then(function(doc){
+            if(doc.exists && kayitliVeriyiUygula(doc.data())) return;
+            goster("e-hikaye"); hikayeCiz();
+          }).catch(function(){ goster("e-hikaye"); hikayeCiz(); });
+        }).catch(function(e){
+          if(zamanAsimiOldu) return; /* zaten "tekrar dene" gosterildi, ikinci bir hata popup'i gostermeye gerek yok */
+          clearTimeout(zamanAsimiTs);
+          girisPopupKapat();
+          b.disabled = false;
+          basitUyari("Giriş yapılamadı: "+(e&&e.message?e.message:"bilinmeyen bir sorun oluştu")+". Lütfen tekrar dene.");
+        });
       }).catch(function(e){
         b.disabled = false;
         basitUyari("Giriş yapılamadı: "+(e&&e.message?e.message:"bilinmeyen bir sorun oluştu")+". Lütfen tekrar dene.");
@@ -2688,6 +2716,27 @@ function basitUyari(mesaj){
   o.innerHTML='<div class="tabaka"><p style="color:var(--tebesir);font-size:15px;line-height:1.5;margin:0 0 16px">'+mesaj+'</p>'+
     '<button class="btn" id="basitUyariKapat">Anladım</button></div>';
   document.getElementById("basitUyariKapat").addEventListener("click", ortuKapat);
+}
+
+/* Google/Apple girisinde, hesap secimi bittikten sonraki Firebase asamasi icin
+   gecici bilgi pop-up'lari. Ayni .ortu/.tabaka deseni, ama buton yok — kendiliginden
+   kapanir (girisPopupKapat ile basariyla, ya da 4sn sonra basarisiz mesajiyla). */
+function girisBekleniyorGoster(){
+  var o=document.getElementById("ortu");
+  o.className="ortu";
+  o.innerHTML='<div class="tabaka"><p style="color:var(--tebesir);font-size:15px;line-height:1.5;margin:0">Giriş yapılıyor, lütfen bekleyiniz...</p></div>';
+}
+function girisPopupKapat(){ ortuKapat(); }
+function girisBasarisizGoster(){
+  var o=document.getElementById("ortu");
+  o.className="ortu";
+  o.innerHTML='<div class="tabaka"><p style="color:var(--tebesir);font-size:15px;line-height:1.5;margin:0">Giriş yapılamadı, lütfen tekrar deneyiniz.</p></div>';
+  setTimeout(function(){
+    /* sadece hala ayni ("basarisiz") mesaj gosteriliyorsa kapat — bu arada
+       baska bir pop-up (ör. gec gelen basari, ya da yeni bir deneme) acilmis
+       olabilir, onu ezip kapatmayalim */
+    if(o.className==="ortu" && o.innerHTML.indexOf("tekrar deneyiniz")>-1) ortuKapat();
+  }, 4000);
 }
 
 document.getElementById("kaydol").addEventListener("click",function(){
