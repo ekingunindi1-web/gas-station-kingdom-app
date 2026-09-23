@@ -64,6 +64,12 @@ header.serit{position:sticky;top:0;z-index:5;background:var(--asfalt2);border-bo
 .kasa{font-family:var(--num);font-size:18px;color:var(--amber);line-height:1.1}
 .tarih{font-size:11px;color:var(--sonuk)}
 .hizlar{display:flex;gap:6px}
+.hizlar.onboard-parlak{position:relative;z-index:21;border-radius:8px;
+  animation:onboardParlama 1.1s ease-in-out infinite}
+@keyframes onboardParlama{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,176,32,.75)}
+  50%{box-shadow:0 0 0 8px rgba(255,176,32,0)}
+}
 .hizlar button{background:transparent;color:var(--sonuk);border:1px solid var(--cizgi);border-radius:3px;
   padding:5px 9px;font-size:12px;font-family:var(--num);min-width:34px}
 .hizlar button.aktif{background:var(--amber);color:#1A1206;border-color:var(--amber)}
@@ -231,20 +237,20 @@ var YATIRIMLAR=[
   etki:{conv:.08,sepet:.18,tutun:-.06,capture:.0006}},
  {id:"tuvalet",ad:"Tuvalet tadilatı",grup:"Tesis",maliyet:220000,sure:12,
   aciklama:"Yoldan geçen aracı içeri çeken görünmez sebep.",etki:{capture:.0009,conv:.03}},
- {id:"self_yikama",ad:"Self servis oto yıkama",grup:"Tesis",maliyet:1,sure:30,opex:7000,katman:"yikama",
+ {id:"self_yikama",ad:"Self servis oto yıkama",grup:"Tesis",maliyet:900000,sure:30,opex:7000,katman:"yikama",
   aciklama:"Düşük işletme gideriyle akaryakıt dışı gelir sağlar.",etki:{capture:.0006},
   modul:{ad:"Oto yıkama",adet:18,fiyat:150,marj:.7}},
- {id:"robot_yikama",ad:"Robotlu oto yıkama",grup:"Tesis",maliyet:1,sure:60,opex:18000,katman:"yikama",kilit:true,
+ {id:"robot_yikama",ad:"Robotlu oto yıkama",grup:"Tesis",maliyet:2600000,sure:60,opex:18000,katman:"yikama",kilit:true,
   aciklama:"Yüksek ciro, yüksek bakım.",etki:{capture:.0013},
   modul:{ad:"Robot yıkama",adet:34,fiyat:350,marj:.55}},
- {id:"kafe",ad:"Kafe inşaatı",grup:"Yeme-içme",maliyet:1,sure:70,opex:55000,katman:"kafe",
+ {id:"kafe",ad:"Kafe inşaatı",grup:"Yeme-içme",maliyet:1800000,sure:70,opex:55000,katman:"kafe",
   personel:{ad:"Kafe personeli",sayi:2,maas:22000},
   aciklama:"Akaryakıt dışı gelirlerde en yüksek marj sahibi yatırımlardan birisidir.",etki:{capture:.001,conv:.02},
   modul:{ad:"Kafe",adet:70,fiyat:120,marj:.6}},
- {id:"restoran",ad:"Restoran inşaatı",grup:"Yeme-içme",maliyet:1,sure:110,opex:140000,katman:"kafe",kilit:true,
+ {id:"restoran",ad:"Restoran inşaatı",grup:"Yeme-içme",maliyet:3200000,sure:110,opex:140000,katman:"kafe",kilit:true,
   aciklama:"Ağır vasıta trafiğini akşam saatlerinde tutar.",etki:{capture:.0019},
   modul:{ad:"Restoran",adet:60,fiyat:380,marj:.45}},
- {id:"sosisli",ad:"Sosisli ve ıslak hamburger",grup:"Yeme-içme",maliyet:1,sure:25,opex:32000,katman:"kafe",kilit:true,
+ {id:"sosisli",ad:"Sosisli ve ıslak hamburger",grup:"Yeme-içme",maliyet:700000,sure:25,opex:32000,katman:"kafe",kilit:true,
   aciklama:"Çok yüksek kar sahibi yatırım olduğu kadar, gece alkollü müşteri riskini bünyesinde barındırır.",etki:{capture:.0008},
   modul:{ad:"Büfe",adet:90,fiyat:95,marj:.55}},
  {id:"lastik",ad:"Lastik bakım atölyesi",grup:"Tesis",maliyet:850000,sure:40,opex:38000,kilit:true,
@@ -254,13 +260,13 @@ var YATIRIMLAR=[
   aciklama:"Geleceğe yatırım, akaryakıt dışı gelir sağlar."},
  {id:"filo",ad:"Filo satış elemanı",grup:"Akaryakıt",maliyet:250000,sure:20,opex:62000,maas:true,
   aciklama:"Kurumsal şirketlere yüksek hacim, düşük marjla motorin satışı sağlar.",etki:{filoLitre:1800}},
- {id:"tank",ad:"Yeni yer altı tankı",grup:"Akaryakıt",maliyet:1,sure:55,katman:"tank",
+ {id:"tank",ad:"Yeni yer altı tankı",grup:"Akaryakıt",maliyet:1900000,sure:55,katman:"tank",
   aciklama:"Toplu alım yapabilmenin şartı. Litre başı kazancı artırır.",etki:{marj:.09}},
- {id:"tanker",ad:"Akaryakıt tankeri",grup:"Akaryakıt",maliyet:1,sure:35,opex:78000,gerek:"tank",katman:"tanker",
+ {id:"tanker",ad:"Akaryakıt tankeri",grup:"Akaryakıt",maliyet:3500000,sure:35,opex:78000,gerek:"tank",katman:"tanker",
   aciklama:"Nakliyeyi kendin yaparsın, navlun cebinde kalır.",etki:{marj:.16}},
  {id:"lpg",ad:"LPG adası",grup:"Akaryakıt",maliyet:2400000,sure:75,opex:22000,kilit:true,
   aciklama:"Yeni ürün grubu, yeni müşteri profili.",etki:{capture:.0004,lpg:true}},
- {id:"ada",ad:"Yeni akaryakıt adası",grup:"Akaryakıt",maliyet:1,sure:50,katman:"ada2",
+ {id:"ada",ad:"Yeni akaryakıt adası",grup:"Akaryakıt",maliyet:1600000,sure:50,katman:"ada2",
   aciklama:"Yoğun saatte müşteri kaybını minimize eder.",etki:{capture:.0026}},
  {id:"p_temizlik",ad:"Temizlik personeli",grup:"Personel",maliyet:0,sure:1,opex:39750,tekrar:3,
   aciklama:"Temiz istasyon, sadık müşteri kazanımı sağlar.",etki:{capture:.0004,conv:.02}},
@@ -2528,7 +2534,8 @@ var ONBOARD=[
  ["saha","Saha","İstasyonunun canlı görünümü burası. Araçların akışını, adaların ve tesislerin durumunu buradan izlersin. Üstteki hız butonlarıyla zamanı hızlandırıp yavaşlatabilirsin."],
  ["rapor","Rapor","Dağıtıcının gönderdiği periyodik raporları burada bulursun: trafik, akaryakıt hacmi, market cirosu gibi verilerle işlerin gerçekte nasıl gittiğini buradan takip edersin."],
  ["yatirim","Yatırım","İstasyonunu büyütmek, personel almak, yeni hizmetler eklemek için yatırımlarını buradan yaparsın. Her yatırımın bir maliyeti, tamamlanma süresi ve getirisi var — doğru zamanlama işin can damarı."],
- ["sozlesme","Sözleşme","Akaryakıt dağıtıcınla olan anlaşman burada. Süresi dolunca yeni teklifler gelir. <b>Kasan negatife düşerse iflas edip sıfırdan başlarsın</b> — bu yüzden yatırım yaparken nakit akışını her zaman göz önünde bulundur."]
+ ["sozlesme","Sözleşme","Akaryakıt dağıtıcınla olan anlaşman burada. Süresi dolunca yeni teklifler gelir. <b>Kasan negatife düşerse iflas edip sıfırdan başlarsın</b> — bu yüzden yatırım yaparken nakit akışını her zaman göz önünde bulundur."],
+ ["saha","Hız kontrolü","Sağ üstteki düğmelerle oyunun hızını istediğin an değiştirebilirsin."]
 ];
 var onboardAdim=0;
 function onboardBaslat(){
@@ -2539,6 +2546,8 @@ function onboardBaslat(){
 function onboardGoster(){
   var o=document.getElementById("ortu"); o.className="ortu";
   var b=ONBOARD[onboardAdim];
+  var sonAdimMi = onboardAdim===ONBOARD.length-1;
+  document.getElementById("hizlar").classList.toggle("onboard-parlak", sonAdimMi);
   o.innerHTML='<div class="tabaka">'+
     '<button class="onboardIleri" id="onboardIleriBtn" aria-label="İleri">&raquo;</button>'+
     '<div style="font-family:var(--num);font-size:11px;color:var(--amber);margin-bottom:8px">'+
@@ -2548,7 +2557,7 @@ function onboardGoster(){
   document.getElementById("onboardIleriBtn").addEventListener("click",function(){
     onboardAdim++;
     if(onboardAdim<ONBOARD.length){ sekmeSec(ONBOARD[onboardAdim][0]); onboardGoster(); }
-    else { D.onboardTamamlandi=true; kaydet(); pencereKapat(); }
+    else { document.getElementById("hizlar").classList.remove("onboard-parlak"); D.onboardTamamlandi=true; kaydet(); pencereKapat(); }
   });
 }
 
