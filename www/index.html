@@ -1672,8 +1672,8 @@ function anaAracKonumla(v,x,y){
   var ax=(kcfg.nx!=null)?kcfg.nx:kcfg.cx, ay=(kcfg.ny!=null)?kcfg.ny:kcfg.cy;
   v.el.style.left=((x-kcfg.w*ax)/ANA_ARAC_W*100)+"%";
   v.el.style.top=((y-kcfg.h*ay)/ANA_ARAC_H*100)+"%";
-  v.el.style.zIndex=Math.round(y/300); /* .ortu (pop-up perdesi) z-index:20 kullaniyor;
-    araçlar bunu asla gecmemeli, o yuzden ham y yerine kucuk (tek haneli), sinirli bir araliga olceklendi */
+  v.el.style.zIndex=Math.round(y/1000); /* .serit (ust menu) z-index:5 kullaniyor; araclar bunun
+    altinda kalmali (kaydirmada menunun ustune tasmasin), o yuzden kucuk (1-4 arasi) tutuluyor */
 }
 
 function anaAracGuncelle(v, ts, dt){
@@ -1771,7 +1771,7 @@ function anaYolAgaclariniOlustur(){
     img.style.height=(a.h/ANA_ARAC_H*100)+"%";
     img.style.left=(a.x/ANA_ARAC_W*100)+"%";
     img.style.top=(a.y/ANA_ARAC_H*100)+"%";
-    img.style.zIndex=15; /* araclarin (max ~9) onunde, pop-up perdesinin (20) arkasinda */
+    img.style.zIndex=4; /* araclarin (max ~4) onunde, ama .serit ust menunun (z-index:5) altinda kalmali */
     kap.appendChild(img);
   });
 }
@@ -1814,8 +1814,8 @@ function anaAracMaviKonumla(x,y){
   var ax=(kcfg.nx!=null)?kcfg.nx:kcfg.cx, ay=(kcfg.ny!=null)?kcfg.ny:kcfg.cy;
   v.el.style.left=((x-kcfg.w*ax)/ANA_ARAC_W*100)+"%";
   v.el.style.top=((y-kcfg.h*ay)/ANA_ARAC_H*100)+"%";
-  v.el.style.zIndex=Math.round(y/300);
-}
+  v.el.style.zIndex=Math.round(y/1000); /* .serit (ust menu) z-index:5 kullaniyor; araclar bunun
+    altinda kalmali (kaydirmada menunun ustune tasmasin), o yuzden kucuk (1-4 arasi) tutuluyor */}
 var ANA_ARAC_MAVI_MIN_ARALIK = 4000; /* bu hareketin kendi tekrar sikligi (ms) — digerlerini etkilemez */
 var ANA_ARAC_MAVI_SON_CIKIS_TS = -99999;
 function anaAracMaviGuncelle(ts, dt){
