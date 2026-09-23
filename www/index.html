@@ -64,8 +64,9 @@ header.serit{position:sticky;top:0;z-index:5;background:var(--asfalt2);border-bo
 .kasa{font-family:var(--num);font-size:18px;color:var(--amber);line-height:1.1}
 .tarih{font-size:11px;color:var(--sonuk)}
 .hizlar{display:flex;gap:6px}
-.hizlar.onboard-parlak{position:relative;z-index:21;border-radius:8px;
+.hizlar.onboard-parlak{position:relative;border-radius:8px;
   animation:onboardParlama 1.1s ease-in-out infinite}
+.serit.onboard-ustte{z-index:22} /* onboarding son adiminda: header'i (.ortu z-index:20) gecsin diye */
 @keyframes onboardParlama{
   0%,100%{box-shadow:0 0 0 0 rgba(255,176,32,.75)}
   50%{box-shadow:0 0 0 8px rgba(255,176,32,0)}
@@ -2548,6 +2549,7 @@ function onboardGoster(){
   var b=ONBOARD[onboardAdim];
   var sonAdimMi = onboardAdim===ONBOARD.length-1;
   document.getElementById("hizlar").classList.toggle("onboard-parlak", sonAdimMi);
+  document.querySelector("header.serit").classList.toggle("onboard-ustte", sonAdimMi);
   o.innerHTML='<div class="tabaka">'+
     '<button class="onboardIleri" id="onboardIleriBtn" aria-label="İleri">&raquo;</button>'+
     '<div style="font-family:var(--num);font-size:11px;color:var(--amber);margin-bottom:8px">'+
@@ -2557,7 +2559,7 @@ function onboardGoster(){
   document.getElementById("onboardIleriBtn").addEventListener("click",function(){
     onboardAdim++;
     if(onboardAdim<ONBOARD.length){ sekmeSec(ONBOARD[onboardAdim][0]); onboardGoster(); }
-    else { document.getElementById("hizlar").classList.remove("onboard-parlak"); D.onboardTamamlandi=true; kaydet(); pencereKapat(); }
+    else { document.getElementById("hizlar").classList.remove("onboard-parlak"); document.querySelector("header.serit").classList.remove("onboard-ustte"); D.onboardTamamlandi=true; kaydet(); pencereKapat(); }
   });
 }
 
