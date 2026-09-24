@@ -135,6 +135,10 @@ nav.alt button{flex:1;padding:14px 0 calc(18px + env(safe-area-inset-bottom));ba
 nav.alt button.aktif{color:var(--tebesir);border-top-color:var(--amber)}
 .ortu{position:fixed;inset:0;background:rgba(8,12,16,.88);z-index:20;display:flex;align-items:flex-end;
   justify-content:center}
+.ortu.onboard-aktif{padding-bottom:calc(64px + env(safe-area-inset-bottom))} /* alt gezinme cubugunun ustunde kalsin */
+nav.alt.onboard-ustte{z-index:22} /* onboarding sirasinda .ortu'nun (z-index:20) ustune cikip gorunur kalsin */
+nav.alt button.onboard-parlak{position:relative;border-radius:6px;
+  animation:onboardParlama 1.1s ease-in-out infinite}
 .tabaka{position:relative;background:var(--asfalt2);border-top:2px solid var(--amber);width:100%;max-width:520px;
   max-height:88vh;overflow-y:auto;padding:18px}
 .onboardIleri{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;
@@ -2545,11 +2549,16 @@ function onboardBaslat(){
   pencereSirala(onboardGoster);
 }
 function onboardGoster(){
-  var o=document.getElementById("ortu"); o.className="ortu";
+  var o=document.getElementById("ortu"); o.className="ortu onboard-aktif";
   var b=ONBOARD[onboardAdim];
   var sonAdimMi = onboardAdim===ONBOARD.length-1;
   document.getElementById("hizlar").classList.toggle("onboard-parlak", sonAdimMi);
   document.querySelector("header.serit").classList.toggle("onboard-ustte", sonAdimMi);
+  var nav=document.getElementById("gezinme");
+  nav.classList.add("onboard-ustte");
+  Array.prototype.forEach.call(nav.querySelectorAll("button"), function(btn){
+    btn.classList.toggle("onboard-parlak", btn.getAttribute("data-sekme")===b[0]);
+  });
   o.innerHTML='<div class="tabaka">'+
     '<button class="onboardIleri" id="onboardIleriBtn" aria-label="İleri">&raquo;</button>'+
     '<div style="font-family:var(--num);font-size:11px;color:var(--amber);margin-bottom:8px">'+
@@ -2559,7 +2568,14 @@ function onboardGoster(){
   document.getElementById("onboardIleriBtn").addEventListener("click",function(){
     onboardAdim++;
     if(onboardAdim<ONBOARD.length){ sekmeSec(ONBOARD[onboardAdim][0]); onboardGoster(); }
-    else { document.getElementById("hizlar").classList.remove("onboard-parlak"); document.querySelector("header.serit").classList.remove("onboard-ustte"); D.onboardTamamlandi=true; kaydet(); pencereKapat(); }
+    else {
+      document.getElementById("hizlar").classList.remove("onboard-parlak");
+      document.querySelector("header.serit").classList.remove("onboard-ustte");
+      var nav2=document.getElementById("gezinme");
+      nav2.classList.remove("onboard-ustte");
+      Array.prototype.forEach.call(nav2.querySelectorAll("button"), function(btn){ btn.classList.remove("onboard-parlak"); });
+      D.onboardTamamlandi=true; kaydet(); pencereKapat();
+    }
   });
 }
 
