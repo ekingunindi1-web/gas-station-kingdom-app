@@ -136,7 +136,7 @@ nav.alt button.aktif{color:var(--tebesir);border-top-color:var(--amber)}
 .ortu{position:fixed;inset:0;background:rgba(8,12,16,.88);z-index:20;display:flex;align-items:flex-end;
   justify-content:center}
 nav.alt.onboard-ustte{z-index:22} /* onboarding sirasinda .ortu'nun (z-index:20) ustune cikip gorunur kalsin */
-nav.alt button.onboard-cerceve{border:2px solid var(--amber);border-radius:6px}
+nav.alt button.onboard-cerceve{box-shadow:inset 0 -3px 0 0 var(--amber)}
 .tabaka{position:relative;background:var(--asfalt2);border-top:2px solid var(--amber);width:100%;max-width:520px;
   max-height:88vh;overflow-y:auto;padding:18px}
 .onboardIleri{position:absolute;top:12px;right:12px;width:34px;height:34px;border-radius:50%;
@@ -2553,10 +2553,10 @@ function onboardGoster(){
   document.getElementById("hizlar").classList.toggle("onboard-parlak", sonAdimMi);
   document.querySelector("header.serit").classList.toggle("onboard-ustte", sonAdimMi);
   var nav=document.getElementById("gezinme");
-  nav.classList.add("onboard-ustte");
-  o.style.paddingBottom = nav.offsetHeight+"px"; /* pop-up'i tam menunun ustunde durdur, bosluk kalmasin */
+  nav.classList.toggle("onboard-ustte", !sonAdimMi);
+  o.style.paddingBottom = sonAdimMi ? "" : nav.offsetHeight+"px"; /* son adimda (hiz kontrolu) menu vurgulanmiyor, pop-up normal konumunda */
   Array.prototype.forEach.call(nav.querySelectorAll("button"), function(btn){
-    btn.classList.toggle("onboard-cerceve", btn.getAttribute("data-sekme")===b[0]);
+    btn.classList.toggle("onboard-cerceve", !sonAdimMi && btn.getAttribute("data-sekme")===b[0]);
   });
   o.innerHTML='<div class="tabaka">'+
     '<button class="onboardIleri" id="onboardIleriBtn" aria-label="İleri">&raquo;</button>'+
