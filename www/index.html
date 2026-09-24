@@ -271,11 +271,11 @@ var YATIRIMLAR=[
   aciklama:"Yeni ürün grubu, yeni müşteri profili.",etki:{capture:.0004,lpg:true}},
  {id:"ada",ad:"Yeni akaryakıt adası",grup:"Akaryakıt",maliyet:1600000,sure:50,katman:"ada2",
   aciklama:"Yoğun saatte müşteri kaybını minimize eder.",etki:{capture:.0026}},
- {id:"p_temizlik",ad:"Temizlik personeli",grup:"Personel",maliyet:0,sure:1,opex:39750,tekrar:3,
+ {id:"p_temizlik",ad:"Temizlik personeli",grup:"Personel",maliyet:0,sure:1,opex:39750,tekrar:6,
   aciklama:"Temiz istasyon, sadık müşteri kazanımı sağlar.",etki:{capture:.0004,conv:.02}},
- {id:"p_akaryakit",ad:"Akaryakıt satış personeli",grup:"Personel",maliyet:0,sure:1,opex:39750,tekrar:6,
+ {id:"p_akaryakit",ad:"Akaryakıt satış personeli",grup:"Personel",maliyet:0,sure:1,opex:39750,tekrar:10,
   aciklama:"Müşterilerin bekleme süresi kısalır ve müşteri kazanımı artar.",etki:{capture:.0008}},
- {id:"p_market",ad:"Market personeli",grup:"Personel",maliyet:0,sure:1,opex:39750,tekrar:4,
+ {id:"p_market",ad:"Market personeli",grup:"Personel",maliyet:0,sure:1,opex:39750,tekrar:6,
   aciklama:"Kasada yaşanabilecek yoğunluğu ve müşteri kaybını engeller.",etki:{conv:.03}},
  {id:"mudur",ad:"İstasyon müdürü",grup:"Yönetim",maliyet:0,sure:1,opex:50000,maas:true,tekrar:1,
   aciklama:"Birden fazla istasyonu aynı anda sen yönetemezsin — her istasyonun kendi müdürü olmalı."},
@@ -324,7 +324,7 @@ var SAHNELER=[
  ["Kaza","Haber gece geldi. Babanı vahim bir kazada kaybettiniz. Cenazeden bir hafta sonra ağabeyin masaya oturdu, işlerin başına o geçti."],
  ["Borç","Ağabeyinin kumarı ilk yıl kimsenin gözüne batmadı. İkinci yılın sonunda şirketin kasası boştu, çekler karşılıksızdı, şantiye mühürlüydü."],
  ["Çağrı","Annen ve kız kardeşin aradı. Amerika'daki eğitimini bırakıp döndün. Havaalanından doğrudan istasyona gittin."],
- ["Kalan","Borcu kapatmak için ne varsa satıldı. Geriye şehrin çıkışında küçük bir akaryakıt istasyonu ve kasada 850.000 ₺ kaldı. Bir de babanın sözleri."]
+ ["Kalan","Borcu kapatmak için ne varsa satıldı. Geriye şehrin çıkışında küçük bir akaryakıt istasyonu ve kasada 1.050.000 ₺ kaldı. Bir de babanın sözleri."]
 ];
 var BILGI=[
  ["Akaryakıt sektöründe hem marj hem de hacim çok kritiktir",
@@ -381,7 +381,7 @@ function istasyonSec(id){
 function yeniDurum(){
   var ana=istasyonYeniDurum("Ana İstasyon");
   var D0={
-    gun:0, baslangic:Date.now(), kasa:850000,
+    gun:0, baslangic:Date.now(), kasa:1050000,
     istasyonlar:{ana:ana, sehirici:null}, aktif:"ana",
     bekleyen:[], onboardTamamlandi:false, istasyon2OnboardTamamlandi:false, iflasEtti:false
   };
@@ -566,7 +566,7 @@ var ANALIZ_BEDELI_TEK=150000, ANALIZ_BEDELI_CIFT=175000, IKMAL_BEDELI=120000;
 var RAKIP_GECIKME=35, RAKIP_ETKISI=.8;   /* rakip istasyon ziyaret oranını %20 düşürür */
 var ISTIFA_ARALIGI_AKARYAKIT=83, ISTIFA_ARALIGI_MARKET=271, ISTIFA_ARALIGI_TEMIZLIK=173;
 var KAZA_ARALIGI=223, KAZA_BEDELI=225000;
-var IKINCI_ISTASYON_FIYAT=12500; /* GECICI TEST FIYATI - yayin oncesi 12500000 olarak geri alinmali! */
+var IKINCI_ISTASYON_FIYAT=12500000;
 
 /* Tekrarlı olaylar (istifa/kaza/analiz/ikmal) ORTAK bir takvimle çalışır — sıklık
    tüm işletme için tektir, ama HANGİ istasyonda gerçekleşeceği sırayla döner:
@@ -2539,7 +2539,7 @@ var hareketBaslatildiMi=false;
 var ONBOARD=[
  ["saha","Saha","İstasyonunun canlı görünümü burası. Araçların akışını, adaların ve tesislerin durumunu buradan izlersin. Üstteki hız butonlarıyla zamanı hızlandırıp yavaşlatabilirsin."],
  ["rapor","Rapor","Dağıtıcının gönderdiği periyodik raporları burada bulursun: trafik, akaryakıt hacmi, market cirosu gibi verilerle işlerin gerçekte nasıl gittiğini buradan takip edersin."],
- ["yatirim","Yatırım","İstasyonunu büyütmek, personel almak, yeni hizmetler eklemek için yatırımlarını buradan yaparsın. Her yatırımın bir maliyeti, tamamlanma süresi ve getirisi var — doğru zamanlama işin can damarı."],
+ ["yatirim","Yatırım","İstasyonunu büyütmek, personel almak, yeni hizmetler eklemek için yatırımlarını buradan yaparsın. Her yatırımın bir maliyeti, tamamlanma süresi ve getirisi var — doğru zamanlama işin can damarı. Nakit akışını doğru yönet — hızlı yatırım yaparsan, karşına çıkabilecek olumsuzluklara hazırsız yakalanabilirsin."],
  ["sozlesme","Sözleşme","Akaryakıt dağıtıcınla olan anlaşman burada. Süresi dolunca yeni teklifler gelir. <b>Kasan negatife düşerse iflas edip sıfırdan başlarsın</b> — bu yüzden yatırım yaparken nakit akışını her zaman göz önünde bulundur."],
  ["saha","Hız kontrolü","Sağ üstteki düğmelerle oyunun hızını istediğin an değiştirebilirsin."]
 ];
