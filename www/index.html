@@ -396,10 +396,11 @@ function sy(n,d){return new Intl.NumberFormat("tr-TR",{minimumFractionDigits:d||
 function esc(s){return String(s).replace(/[&<>]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;"}[c]})}
 
 /* ================= simülasyon ================= */
-function etkiler(){
+function etkiler(sahip){
+  sahip = sahip || D.sahip;
   var e={capture:0,conv:0,sepet:0,tutun:0,marj:0,filoLitre:0,lpg:false},opex=0,maas=0,moduller=[];
   YATIRIMLAR.forEach(function(y){
-    var n=D.sahip[y.id]||0; if(!n) return;
+    var n=sahip[y.id]||0; if(!n) return;
     /* maaş niteliğindeki giderler personel kalemine gider, işletme giderine değil */
     if(y.maas) maas+=(y.opex||0)*n;
     else if(y.personel){                       /* tesis giderinin maaş kısmı ayrıştırılıyor */
@@ -414,25 +415,26 @@ function etkiler(){
   return {e:e,opex:opex,maas:maas,moduller:moduller};
 }
 
-function gunuHesapla(){
-  var t=etkiler(), e=t.e, opex=t.opex;
+function gunuHesapla(ist){
+  var kaynak = ist || D;
+  var t=etkiler(kaynak.sahip), e=t.e, opex=t.opex;
   var tarih=new Date(D.baslangic+D.gun*86400000);
   var hs=tarih.getDay()===0||tarih.getDay()===6;
   var rnd=.94+Math.random()*.12;
-  var trafik=Math.round(D.trafik*(hs?.88:1)*rnd);
-  var m=memnuniyetCarpani();
+  var trafik=Math.round(kaynak.trafik*(hs?.88:1)*rnd);
+  var m=memnuniyetCarpani(kaynak);
   var capture=Math.min(YAKALAMA_TAVANI,(.0115+e.capture+m.bonus)*m.capture);
   var gelen=Math.round(trafik*capture);
-  var bPay=D.sozlesme.benzinPay||.4;
+  var bPay=kaynak.sozlesme.benzinPay||.4;
   var lPay=e.lpg?.15:0, mPay=Math.max(.1,1-bPay-lPay);
   var bArac=Math.round(gelen*bPay), mArac=Math.round(gelen*mPay), lArac=Math.round(gelen*lPay);
   var filo=e.filoLitre*(hs?.4:1);
   var bH=bArac*21.5, mH=mArac*37.5+filo, lH=lArac*31;
-  var marjB=D.sozlesme.marjB+e.marj, marjM=D.sozlesme.marjM+e.marj;
+  var marjB=kaynak.sozlesme.marjB+e.marj, marjM=kaynak.sozlesme.marjM+e.marj;
   var ciroB=bH*FIYAT.benzin, ciroM=mH*FIYAT.motorin, ciroL=lH*FIYAT.lpg;
   var karB=bH*marjB, karM=(mH-filo)*marjM+filo*marjM*.55, karL=lH*1.95;
   var conv=Math.min(.85,.34+e.conv);
-  var islem=Math.round(gelen*conv*m.market*(D.sozlesme.marketCarpan||1));
+  var islem=Math.round(gelen*conv*m.market*(kaynak.sozlesme.marketCarpan||1));
   var sepet=165*(1+e.sepet), tutun=Math.max(.18,.64+e.tutun);
   var ciroMarket=islem*sepet, karMarket=ciroMarket*(tutun*.03+(1-tutun)*.26);
   var ciroDiger=0,karDiger=0,detay=[];
@@ -440,8 +442,8 @@ function gunuHesapla(){
     var n=Math.round(m.adet*(hs?1.15:1)*rnd), c=n*m.fiyat;
     ciroDiger+=c; karDiger+=c*m.marj; detay.push({ad:m.ad,adet:n,ciro:c});
   });
-  var personelAy=(D.sahip.p_akaryakit||0)*39750+(D.sahip.p_market||0)*39750+
-    (D.sahip.p_temizlik||0)*39750+55000+t.maas;
+  var personelAy=(kaynak.sahip.p_akaryakit||0)*39750+(kaynak.sahip.p_market||0)*39750+
+    (kaynak.sahip.p_temizlik||0)*39750+55000+t.maas;
   var gPers=personelAy/30, gEner=(48000+opex*.2)/30, gMuh=14000/30, gDig=opex*.8/30;
   var brut=karB+karM+karL+karMarket+karDiger;
   var gider=gPers+gEner+gMuh+gDig;
@@ -457,7 +459,7 @@ function gunuHesapla(){
     brut:brut,gider:gider,vergi:vergi,net:brut-gider-vergi,kapali:false};
 
   /* istasyon kapalıysa gelir durur, giderler devam eder */
-  if(D.kapaliGun>0){
+  if(kaynak.kapaliGun>0){
     ["bH","mH","lH","ciroB","ciroM","ciroL","ciroMarket","ciroDiger","ciroToplam","brut",
      "gelen","bArac","mArac","lArac","islem"].forEach(function(k){ r[k]=0 });
     r.detay=[]; r.odeme.akaryakit=0; r.odeme.market=0; r.odeme.diger=r.odeme.diger*0+gDig;
@@ -467,9 +469,10 @@ function gunuHesapla(){
 }
 
 /* şikâyetlerin yakalama oranına ve market işlemine etkisi */
-function memnuniyetCarpani(){
-  var M=D.memnuniyet||{}, cap=1, mar=1;
-  if(D.rakipIstasyon) cap*=RAKIP_ETKISI;
+function memnuniyetCarpani(kaynak){
+  kaynak = kaynak || D;
+  var M=kaynak.memnuniyet||{}, cap=1, mar=1;
+  if(kaynak.rakipIstasyon) cap*=RAKIP_ETKISI;
   for(var k in TAKIPLER){
     var s=(M.sikayet&&M.sikayet[k])||0; if(!s) continue;
     var t=TAKIPLER[k], d=1-(s/100)*t.agirlik;
@@ -2009,7 +2012,7 @@ function cizRapor(){
     sat("Temizlik personeli",sy(D.sahip.p_temizlik||0))+
     ((D.sahip.filo||0)>0?sat("Filo satış elemanı",sy(D.sahip.filo||0),null,"aylık "+tl(62000)):"")+
     tesisPersoneli()+
-    sat("Müdür","1",null,"sensin"));
+    sat("Müdür", D.sahip.mudur>0?"1":"—", null, D.sahip.mudur>0?"aylık "+tl(50000):"sensin"));
   if(D.gecmis.length>3){
     var v=D.gecmis.map(function(g){return g.net}),mx=Math.max.apply(null,v.concat([1])),mn=Math.min.apply(null,v.concat([0]));
     var p=v.map(function(x,i){return (i/(v.length-1||1))*300+","+(70-((x-mn)/((mx-mn)||1))*70)}).join(" ");
