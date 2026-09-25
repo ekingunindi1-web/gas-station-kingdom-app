@@ -163,6 +163,27 @@ workflows:
           if [ ! -d "ios" ]; then
             npx cap add ios
           fi
+      - name: "Uygulamayı sadece iPhone ile sınırla (iPad desteğini kapat)"
+        script: |
+          # Oyun tamamen dikey telefon duzeni icin tasarlandi, iPad'e ozel bir
+          # arayuzu yok. Capacitor'in "cap add ios" ile urettigi proje varsayilan
+          # olarak TARGETED_DEVICE_FAMILY = "1,2" (iPhone + iPad) ayarliyor.
+          # Bunu "1" (sadece iPhone) yaparak hem App Store Connect'in istedigi
+          # iPad ekran goruntusu zorunlulugunu ortadan kaldiriyoruz, hem de
+          # optimize edilmemis bir iPad deneyimi sunmamis oluyoruz.
+          cat > /tmp/iphone_only.rb << 'RUBY'
+          require 'xcodeproj'
+          proje = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          hedef = proje.targets.find { |t| t.name == 'App' }
+          hedef.build_configurations.each do |config|
+            config.build_settings['TARGETED_DEVICE_FAMILY'] = '1'
+          end
+          proje.save
+          puts "TARGETED_DEVICE_FAMILY ayarlandi: 1 (sadece iPhone)"
+          RUBY
+          ruby /tmp/iphone_only.rb
+          echo "--- project.pbxproj icinde TARGETED_DEVICE_FAMILY ---"
+          grep -n "TARGETED_DEVICE_FAMILY" ios/App/App.xcodeproj/project.pbxproj
       - name: GoogleService-Info.plist'i yerleştir
         script: |
           if [ ! -f "GoogleService-Info.plist" ]; then
@@ -333,6 +354,27 @@ workflows:
           if [ ! -d "ios" ]; then
             npx cap add ios
           fi
+      - name: "Uygulamayı sadece iPhone ile sınırla (iPad desteğini kapat)"
+        script: |
+          # Oyun tamamen dikey telefon duzeni icin tasarlandi, iPad'e ozel bir
+          # arayuzu yok. Capacitor'in "cap add ios" ile urettigi proje varsayilan
+          # olarak TARGETED_DEVICE_FAMILY = "1,2" (iPhone + iPad) ayarliyor.
+          # Bunu "1" (sadece iPhone) yaparak hem App Store Connect'in istedigi
+          # iPad ekran goruntusu zorunlulugunu ortadan kaldiriyoruz, hem de
+          # optimize edilmemis bir iPad deneyimi sunmamis oluyoruz.
+          cat > /tmp/iphone_only.rb << 'RUBY'
+          require 'xcodeproj'
+          proje = Xcodeproj::Project.open('ios/App/App.xcodeproj')
+          hedef = proje.targets.find { |t| t.name == 'App' }
+          hedef.build_configurations.each do |config|
+            config.build_settings['TARGETED_DEVICE_FAMILY'] = '1'
+          end
+          proje.save
+          puts "TARGETED_DEVICE_FAMILY ayarlandi: 1 (sadece iPhone)"
+          RUBY
+          ruby /tmp/iphone_only.rb
+          echo "--- project.pbxproj icinde TARGETED_DEVICE_FAMILY ---"
+          grep -n "TARGETED_DEVICE_FAMILY" ios/App/App.xcodeproj/project.pbxproj
       - name: GoogleService-Info.plist'i yerleştir
         script: |
           if [ ! -f "GoogleService-Info.plist" ]; then
