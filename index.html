@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gas Station Kingdom</title>
+<title>Destek — Gas Station Kingdom</title>
 <style>
   :root{
     --asfalt:#0a0a0f; --asfalt2:#12121a; --cizgi:#242433;
@@ -13,29 +13,74 @@
   body{margin:0;background:var(--asfalt);color:var(--tebesir);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     line-height:1.6;-webkit-font-smoothing:antialiased;
-    display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
-  .kabuk{max-width:560px;text-align:center}
+    padding:24px;min-height:100vh}
+  .kabuk{max-width:640px;margin:0 auto}
+  header{text-align:center;margin-bottom:40px}
   h1{font-size:32px;margin:0 0 8px;color:var(--tebesir)}
-  .alt{color:var(--amber);font-size:16px;margin:0 0 24px;font-weight:600}
-  p{color:var(--beton);font-size:15px}
-  .baglantilar{margin-top:32px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+  .alt{color:var(--amber);font-size:16px;margin:0;font-weight:600}
+  h2{font-size:19px;color:var(--tebesir);margin:0 0 4px}
+  p{color:var(--beton);font-size:15px;margin:0 0 8px}
+  .kart{background:var(--asfalt2);border:1px solid var(--cizgi);border-radius:8px;
+    padding:20px 22px;margin-bottom:16px}
+  .baglantilar{margin-top:36px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
   a{color:var(--amber);text-decoration:none;font-size:14px;border:1px solid var(--cizgi);
     padding:10px 18px;border-radius:4px}
   a:hover{border-color:var(--amber)}
-  footer{margin-top:40px;color:var(--sonuk);font-size:12px}
+  a.metin-linki{border:0;padding:0;text-decoration:underline}
+  footer{margin-top:40px;color:var(--sonuk);font-size:12px;text-align:center}
 </style>
 </head>
 <body>
   <div class="kabuk">
-    <h1>Gas Station Kingdom</h1>
-    <div class="alt">Ailenin küllerinden doğması için o koltuğa oturma sırası sende.</div>
-    <p>Babadan kalan tek bir akaryakıt istasyonunu, kısıtlı bir sermayeyle büyük bir işletmeye
-    dönüştürmeye çalıştığın bir yönetim simülasyonu. Trafiği izle, doğru yatırımları yap,
-    dağıtıcı sözleşmeni yönet — ve iflas etmeden ayakta kal.</p>
+    <header>
+      <h1>Destek</h1>
+      <div class="alt">Gas Station Kingdom</div>
+    </header>
+
+    <div class="kart">
+      <h2>Bir sorun mu yaşıyorsun?</h2>
+      <p>Aşağıda sık karşılaşılan konuları bulabilirsin. Aradığın cevap yoksa, en alttaki
+      adresten doğrudan bize yazabilirsin — genellikle 1-2 iş günü içinde dönüş yapıyoruz.</p>
+    </div>
+
+    <div class="kart">
+      <h2>Giriş yapmadan oynayabilir miyim?</h2>
+      <p>Evet. Uygulamayı ilk açtığında "Misafir Girişi" ile hiçbir bilgi girmeden hemen
+      oynamaya başlayabilirsin. İlerlemen bu cihaza bağlı olarak kaydedilir.</p>
+    </div>
+
+    <div class="kart">
+      <h2>İlerlemem nasıl kaydediliyor?</h2>
+      <p>Misafir Girişi kullanıyorsan ilerlemen sadece bu cihazda saklanır — uygulamayı
+      silersen kaldığın yerden devam edemezsin. İlerlemeni farklı bir cihaza taşımak veya
+      cihaz değişikliğinde kaybetmemek istiyorsan, Google veya Apple ile giriş yapmanı
+      öneririz; bu durumda ilerlemen hesabına bağlı olarak saklanır.</p>
+    </div>
+
+    <div class="kart">
+      <h2>Hesabımı ve verilerimi nasıl silerim?</h2>
+      <p>Sözleşme sekmesinin en altında yer alan "Hesabımı Sil" seçeneğiyle hesabına bağlı
+      tüm oyun verilerini kalıcı olarak silebilirsin. Bu işlem geri alınamaz.</p>
+    </div>
+
+    <div class="kart">
+      <h2>Google veya Apple ile giriş yaparken sorun yaşıyorum</h2>
+      <p>Giriş bazen bağlantı hızına bağlı olarak birkaç saniye sürebilir; bu sırada ekranda
+      "Giriş yapılıyor" bildirimini görürsün. Eğer uzun süre sonuç alamıyorsan uygulamayı
+      kapatıp tekrar denemeni, ve cihazının internet bağlantısını kontrol etmeni öneririz.</p>
+    </div>
+
+    <div class="kart">
+      <h2>Önerin veya bulduğun bir hata mı var?</h2>
+      <p>Geri bildirimlerini duymaktan memnuniyet duyarız — oyunu geliştirmemize doğrudan
+      yardımcı oluyor.</p>
+    </div>
+
     <div class="baglantilar">
       <a href="./privacy.html">Gizlilik Politikası</a>
-      <a href="mailto:vivvi0808@gmail.com">İletişim</a>
+      <a href="mailto:vivvi0808@gmail.com">Bize e-posta gönder</a>
     </div>
+
     <footer>© 2026 Gas Station Kingdom</footer>
   </div>
 </body>
