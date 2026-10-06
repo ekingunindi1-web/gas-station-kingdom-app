@@ -524,7 +524,8 @@ function gunuHesapla(ist){
     ["bH","mH","lH","ciroB","ciroM","ciroL","ciroMarket","ciroDiger","ciroToplam","brut",
      "gelen","bArac","mArac","lArac","islem"].forEach(function(k){ r[k]=0 });
     r.detay=[]; r.odeme.akaryakit=0; r.odeme.market=0; r.odeme.diger=r.odeme.diger*0+gDig;
-    r.vergi=0; r.kapali=true; r.net=-(gPers+gEner+gMuh+gDig); r.gider=gPers+gEner+gMuh+gDig;
+    r.vergi=0; r.odeme.vergi=0; /* kapalı günde vergi yok; rapordaki ödeme kalemi de sıfırlanmalı */
+    r.kapali=true; r.net=-(gPers+gEner+gMuh+gDig); r.gider=gPers+gEner+gMuh+gDig;
   }
   return r;
 }
