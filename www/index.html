@@ -87,6 +87,12 @@ header.serit{position:sticky;top:0;z-index:5;background:var(--asfalt2);border-bo
 }
 .hizlar button{background:transparent;color:var(--sonuk);border:1px solid var(--cizgi);border-radius:3px;
   padding:5px 9px;font-size:12px;font-family:var(--num);min-width:34px}
+/* ust serit: sol bilgi alani esnek, hiz butonlari sabit; sol taraf asla butonlarin ustune tasmaz */
+.serit>div:first-child{flex:1 1 auto;min-width:0;margin-right:8px}
+.hizlar{flex:0 0 auto;gap:4px}
+.hizlar button{padding:5px 6px;min-width:29px;font-size:11.5px}
+.tarih-parca{white-space:nowrap;display:inline-block}
+.tarih.istasyonlu{font-size:10.5px;line-height:1.35}
 .hizlar button.aktif{background:var(--amber);color:#1A1206;border-color:var(--amber)}
 #saha{background:#EDF2F4;border-bottom:1px solid var(--cizgi);position:relative;line-height:0}
 #saha svg{width:100%;display:block}
@@ -252,6 +258,9 @@ var YATIRIMLAR=[
  {id:"market_buyutme",ad:"Market iç tasarımını ve teknolojik altyapısını yenileme",grup:"Market",maliyet:1400000,sure:45,opex:12000,
   gerek:"market_bakim",aciklama:"Market planogram tasarımının iyileştirilmesi ve yazar kasa altyapısının kurulması.",
   etki:{conv:.08,sepet:.18,tutun:-.06,capture:.0006}},
+ {id:"market_guvenlik",ad:"Market güvenlik sistemi",grup:"Market",maliyet:165000,sure:5,
+  aciklama:"Kamera ve RFID sistemleri ile market ürünlerinin korunması.",
+  fayda:["Aylık market fire oranının yaklaşık %65 oranında düşmesini sağlar."]},
  {id:"tuvalet",ad:"Tuvalet tadilatı",grup:"Tesis",maliyet:220000,sure:12,
   aciklama:"Yoldan geçen aracı içeri çeken görünmez sebep.",etki:{capture:.0009,conv:.03}},
  {id:"self_yikama",ad:"Self servis oto yıkama",grup:"Tesis",maliyet:900000,sure:30,opex:7000,katman:"yikama",
@@ -390,6 +399,29 @@ function istasyonSec(id){
   istasyonDurumunuKaydet();
   istasyonDurumunuYukle(id);
   ciz();
+}
+/* Baska bir istasyondan gelen bildirimler, oyuncunun goruntuledigi istasyonu
+   DEGISTIRMEDEN acilir: bildirim gosterilirken sadece veri baglami (D'nin canli
+   alanlari) ilgili istasyona alinir ki butonlar (personel al, teklif imzala vb.)
+   dogru istasyona islem yapsin; ekran yeniden cizilmez. Pencere kuyrugu
+   bitince oyuncunun kendi istasyonuna geri donulur. */
+var bildirimDonusIstasyonu=null;
+function istasyonVeriSec(id){
+  if(!D.istasyonlar || !D.istasyonlar[id] || id===D.aktif) return;
+  istasyonDurumunuKaydet();
+  istasyonDurumunuYukle(id);
+}
+function istasyonBildirimiSirala(anahtar, gosterFn){
+  pencereSirala(function(){
+    if(bildirimDonusIstasyonu===null) bildirimDonusIstasyonu=D.aktif;
+    istasyonVeriSec(anahtar);
+    gosterFn();
+  });
+}
+function bildirimBaglaminiKapat(){
+  if(bildirimDonusIstasyonu===null) return;
+  var geri=bildirimDonusIstasyonu; bildirimDonusIstasyonu=null;
+  istasyonVeriSec(geri);
 }
 
 function yeniDurum(){
@@ -536,13 +568,16 @@ function gunGec(){
   }
   olaylariIsle();
   takipleriYokla();
+  agabeyBorcuKontrol();
   /* rapor ve sözleşme teklifi: her istasyon kendi bağımsız takviminde,
      hangi istasyon aktifse ona geçilip ilgili popup o istasyon için açılır */
   sahipIstasyonAnahtarlari().forEach(function(anahtar){
     var ist=D.istasyonlar[anahtar];
     if(D.gun-ist.memnuniyet.sonRapor>=RAPOR_ARALIGI){
-      istasyonSec(anahtar);
-      raporUret(D.istasyonlar[anahtar]);
+      var donemBasi=ist.memnuniyet.sonRapor||0;
+      raporUret(ist);
+      istasyonBildirimiSirala(anahtar, raporGoster);
+      marketSayimi(anahtar, donemBasi); /* memnuniyet raporundan hemen sonra market sayim raporu */
     }
   });
   sahipIstasyonAnahtarlari().forEach(function(anahtar){
@@ -551,13 +586,51 @@ function gunGec(){
        (1825 gün) bir — imzalanan sözleşmenin kendi süresinden (yil) BAĞIMSIZ sabit bir döngü */
     if(!ist.teklifAcik && D.gun>=ist.sonrakiTeklifGunu){
       ist.teklifAcik=true;
-      istasyonSec(anahtar);
-      D.teklifAcik=true;
-      pencereSirala(teklifGoster);
+      if(anahtar===D.aktif) D.teklifAcik=true;
+      istasyonBildirimiSirala(anahtar, teklifGoster);
     }
   });
   kaydet(); /* her gün otomatik kaydet (öncesinde 5 günde bir idi — erken çıkış/yenilemede ilerleme kaybını önlemek için sıklaştırıldı) */
   ciz();
+}
+
+/* Kasa ilk kez AGABEY_ESIK'i geçtiğinde, bir kerelik aile olayı: ağabeyin kumar borcu kapatılır. */
+var AGABEY_ESIK=5150250, AGABEY_ODEME=1250000;
+function agabeyBorcuKontrol(){
+  if(D.agabeyBorcuOdendi || D.iflasEtti || D.kasa<=AGABEY_ESIK) return;
+  D.agabeyBorcuOdendi=true;
+  D.kasa-=AGABEY_ODEME;
+  logYaz(D.aktif, "Ağabeyinin kumar borçlarının kapanması için "+tl(AGABEY_ODEME)+" ödeme yapıldı.");
+  bildirimSirala({ust:"Aile", renk:"var(--kirmizi)",
+    baslik:"Ağabeyinin kumar alışkanlığı devam ediyor.",
+    metin:"Annen, ağabeyine destek olmanı istiyor. Kumar borçlarının kapanması için <b>"+tl(AGABEY_ODEME)+"</b> ödeme yapıldı."});
+}
+
+/* ================= market sayımı (aylık fire) ================= */
+/* Her memnuniyet raporundan sonra, dönem market cirosunun %1-2'si (güvenlik sistemi
+   varsa %0-1'i) kadar fire (hırsızlık, kırılma, bozulma) kasadan düşülür. */
+function marketSayimi(anahtar, donemBasi){
+  var ist=D.istasyonlar[anahtar]; if(!ist) return;
+  var ciro=0, gunSay=0;
+  (ist.gecmis||[]).forEach(function(g){ if(g.gun>donemBasi && g.gun<=D.gun){ ciro+=g.ciroMarket||0; gunSay++; } });
+  var guvenlik=(ist.sahip.market_guvenlik||0)>0;
+  var oran = guvenlik ? Math.random()*0.01 : 0.01+Math.random()*0.01;
+  var fire=Math.round(ciro*oran);
+  D.kasa-=fire;
+  logYaz(anahtar, "Market sayımı: "+tl(fire)+" fire tespit edildi.");
+  var adEki = sahipIstasyonAnahtarlari().length>1 ? " · "+ist.ad : "";
+  istasyonBildirimiSirala(anahtar, function(){
+    bildirimGoster({ust:"Market sayımı"+adEki, renk:"var(--kirmizi)",
+      baslik:"Aylık market sayımı tamamlandı.",
+      metin:'<div class="teklif" style="margin-bottom:12px">'+
+        sat("Dönem market cirosu",tl(ciro),null,gunSay+" günlük toplam")+
+        sat("Fire oranı","%"+sy(oran*100,2))+
+        sat("Fire maliyeti",tl(fire),"var(--kirmizi)")+'</div>'+
+        (guvenlik
+          ? "Market güvenlik sistemi sayesinde hırsızlık kaynaklı kayıplar düşük seviyede kaldı. Fire maliyeti kasadan düşüldü."
+          : "Hırsızlık, kırılma ve son kullanma tarihi geçen ürünler nedeniyle oluşan kayıp kasadan düşüldü. "+
+            "<b>Market güvenlik sistemi</b> yatırımı fire oranını düşürebilir.")});
+  });
 }
 
 /* kasa negatife düştüğünde: oyun durur, tek seçenek sıfırdan başlamaktır */
@@ -580,7 +653,7 @@ var ANALIZ_BEDELI_TEK=150000, ANALIZ_BEDELI_CIFT=175000, IKMAL_BEDELI=120000;
 var RAKIP_GECIKME=35, RAKIP_ETKISI=.8;   /* rakip istasyon ziyaret oranını %20 düşürür */
 var ISTIFA_ARALIGI_AKARYAKIT=120, ISTIFA_ARALIGI_MARKET=271, ISTIFA_ARALIGI_TEMIZLIK=173;
 var KAZA_ARALIGI=405, KAZA_BEDELI=225000;
-var IKINCI_ISTASYON_FIYAT=12500000;
+var IKINCI_ISTASYON_FIYAT=12500; /* GECICI TEST FIYATI - yayin oncesi 12500000 olarak geri alinmali! */
 
 /* Tekrarlı olaylar (istifa/kaza/analiz/ikmal) ORTAK bir takvimle çalışır — sıklık
    tüm işletme için tektir, ama HANGİ istasyonda gerçekleşeceği sırayla döner:
@@ -606,10 +679,11 @@ function logYaz(istasyonAnahtari, metin){
    şekilde "duraklamış" olur, yatirimYap() zaten personel maliyetini 0 aldığı ve
    1 gün sürdüğü için ertesi gün normal akışa döner. */
 function personelIstifaBildir(unvan,id,istasyonAnahtari){
-  istasyonSec(istasyonAnahtari); /* Personel Al butonu doğru istasyonu hedeflesin diye önce oraya geçiyoruz */
+  /* Personel Al butonu doğru istasyonu hedeflesin diye bildirim, ekran değiştirilmeden
+     o istasyonun veri bağlamında açılır */
   var istasyon=D.istasyonlar[istasyonAnahtari];
   var adEki = sahipIstasyonAnahtarlari().length>1 ? " ("+istasyon.ad+")" : "";
-  bildirimSirala({
+  var bildirim=({
     ozel:true,
     ust:"Personel"+adEki, renk:"var(--kirmizi)",
     baslik:"Bir "+unvan+" istifa etti.",
@@ -619,6 +693,7 @@ function personelIstifaBildir(unvan,id,istasyonAnahtari){
         : ""),
     zorunluId: (istasyon.sahip[id]||0)===0 ? id : null
   });
+  istasyonBildirimiSirala(istasyonAnahtari, function(){ bildirimGoster(bildirim); });
 }
 
 /* İkinci istasyon alındığında her istasyonun kendi müdürü olması zorunlu hale gelir.
@@ -663,6 +738,7 @@ function istasyonSeciciGoster(){
     var btns=o.querySelectorAll("[data-istasyon-sec]");
     for(var i=0;i<btns.length;i++)(function(el){
       el.addEventListener("click",function(){
+        bildirimDonusIstasyonu=null;
         istasyonSec(el.getAttribute("data-istasyon-sec"));
         pencereKapat();
       });
@@ -820,6 +896,7 @@ function pencereSirala(ciz){
 }
 function pencereSonraki(){
   if(!pencereKuyrugu.length){
+    bildirimBaglaminiKapat(); /* bildirimler bitti: oyuncunun goruntuledigi istasyona don */
     pencereAcik=false; ortuKapat(); hizAyarla(oncekiHiz||1); ciz();
     return;
   }
@@ -850,18 +927,25 @@ function bildirimGoster(b){
 }
 
 /* ================= müşteri memnuniyeti ================= */
-function takipAc(k,baslangic){
-  var M=D.memnuniyet;
+function takipAc(k,baslangic,ist){
+  ist = ist || D;
+  var M=ist.memnuniyet;
   if(M.aktif[k]) return;
   M.aktif[k]=D.gun;
-  M.esik[k]=D.sahip[TAKIPLER[k].yatirim]||0;   /* bu sayıyı aşmak gerekiyor */
+  M.esik[k]=ist.sahip[TAKIPLER[k].yatirim]||0;   /* bu sayıyı aşmak gerekiyor */
   M.sikayet[k]=baslangic;
 }
+/* Şikâyet takibi her istasyon için, oyuncunun hangisini görüntülediğinden bağımsız,
+   paralel çalışır. Temizlik takibi istasyonun açılışından bir ay sonra başlar. */
 function takipleriYokla(){
-  var M=D.memnuniyet;
-  if(D.gun>=RAPOR_ARALIGI) takipAc("temizlik",16);
-  if(D.tamamGun.market_buyutme!==undefined && D.gun-D.tamamGun.market_buyutme>=60) takipAc("market",20);
-  if(D.tamamGun.ada!==undefined && D.gun-D.tamamGun.ada>=30) takipAc("pompa",20);
+  sahipIstasyonAnahtarlari().forEach(function(anahtar){
+    var nesne=D.istasyonlar[anahtar];
+    var ist = anahtar===D.aktif ? D : nesne;   /* aktif istasyonun canlı alanları D üzerinde */
+    var acilis = nesne.acilisGunu || 0;
+    if(D.gun-acilis>=RAPOR_ARALIGI) takipAc("temizlik",16,ist);
+    if(ist.tamamGun.market_buyutme!==undefined && D.gun-ist.tamamGun.market_buyutme>=60) takipAc("market",20,ist);
+    if(ist.tamamGun.ada!==undefined && D.gun-ist.tamamGun.ada>=30) takipAc("pompa",20,ist);
+  });
 }
 function raporUret(ist){
   ist = ist || D;
@@ -888,7 +972,6 @@ function raporUret(ist){
     ay:Math.round(D.gun/RAPOR_ARALIGI),ozet:aylikOzet(ist),skor:memnuniyetSkoru(ist),
     analizVarMi:analizVarMi,kazaVarMi:kazaVarMi};
   logYaz(ist===D?D.aktif:sahipIstasyonAnahtarlari().filter(function(k){return D.istasyonlar[k]===ist})[0], ist.sozlesme.firma+" müşteri memnuniyet raporunu gönderdi.");
-  if(ist===D || ist===D.istasyonlar[D.aktif]) pencereSirala(raporGoster);
 }
 function sikayetYokMetni(R){
   if(R.analizVarMi && R.kazaVarMi)
@@ -2039,6 +2122,7 @@ function cizRapor(){
 
 function bilgiSatirlari(y){
   var s=[], e=y.etki||{};
+  if(y.fayda) y.fayda.forEach(function(f){ s.push(f); });
   if(e.capture) s.push("Yoldan geçen araçların istasyonu ziyaret etme oranına +"+sy(e.capture*100,2)+" puan katkı sağlar.");
   if(e.conv) s.push("İçeri giren araçların markete girme oranını +%"+sy(e.conv*100,0)+" artırır.");
   if(e.sepet) s.push("Ortalama market sepetini +%"+sy(e.sepet*100,0)+" büyütür.");
@@ -2123,10 +2207,20 @@ function cizSozlesme(){
 }
 
 function ciz(){
+  /* baska istasyonun bildirimi acikken arka plan oyuncunun istasyonunda kalsin */
+  if(bildirimDonusIstasyonu!==null){
+    if(!pencereAcik || !D.istasyonlar || !D.istasyonlar[bildirimDonusIstasyonu]) bildirimDonusIstasyonu=null;
+    else if(D.aktif!==bildirimDonusIstasyonu) return;
+  }
   var t=new Date(D.baslangic+D.gun*86400000);
   document.getElementById("kasa").textContent=tl(D.kasa);
-  document.getElementById("tarih").textContent=
-    t.toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" · "+D.gun+". gün";
+  var tarihMetni=t.toLocaleDateString("tr-TR",{day:"numeric",month:"long",year:"numeric"})+" · "+D.gun+". gün";
+  var istasyonEtiketi = sahipIstasyonAnahtarlari().length>1 &&
+    (sekme==="rapor"||sekme==="yatirim"||sekme==="sozlesme");
+  document.getElementById("tarih").classList.toggle("istasyonlu", !!istasyonEtiketi);
+  document.getElementById("tarih").innerHTML = istasyonEtiketi
+    ? '<span class="tarih-parca">'+esc(tarihMetni)+'</span> <span class="tarih-parca tarih-istasyon">· '+esc(D.ad)+'</span>'
+    : esc(tarihMetni);
   var g=document.getElementById("saha");
   var gs=document.getElementById("saha-sehirici");
   var sahaGorunur = sekme==="saha";
@@ -2148,7 +2242,7 @@ function ciz(){
 /* ================= sözleşme teklifi ================= */
 function teklifGoster(){
   var h='<div class="tabaka"><div style="font-family:var(--num);font-size:11px;color:var(--amber);margin-bottom:8px">'+
-    'Sözleşme dönemi doldu</div><h2 style="margin:0 0 8px;font-size:22px">Üç dağıtıcı masaya oturdu</h2>'+
+    'Sözleşme dönemi doldu'+(sahipIstasyonAnahtarlari().length>1?' · '+esc(D.ad):'')+'</div><h2 style="margin:0 0 8px;font-size:22px">Üç dağıtıcı masaya oturdu</h2>'+
     '<p class="metin" style="margin-bottom:18px">'+esc(D.sozlesme.firma)+
     ' ile sözleşmen bitti. Bugün seçtiğin marj, önümüzdeki yılların tamamını belirleyecek. '+
     'Mevzuat gereği sözleşmeler en fazla '+AZAMI_SOZLESME_YILI+' yıllık yapılabiliyor. '+
@@ -2390,8 +2484,11 @@ function ikinciIstasyonSatinAl(){
     marjB:+(D.sozlesme.marjB*1.10).toFixed(2), marjM:+(D.sozlesme.marjM*1.10).toFixed(2),
     benzinPay:D.sozlesme.benzinPay, marketCarpan:D.sozlesme.marketCarpan};
   sehirici.sonrakiTeklifGunu=D.gun+1125;
+  sehirici.acilisGunu=D.gun;              /* şikâyet takibi bu günden itibaren sayılır */
+  sehirici.memnuniyet.sonRapor=D.gun;     /* ilk memnuniyet raporu ve market sayımı bir ay sonra */
   D.istasyonlar.sehirici=sehirici;
   D.log.unshift({gun:D.gun,metin:"Şehir İçi İstasyon "+tl(IKINCI_ISTASYON_FIYAT)+" karşılığında satın alındı."});
+  bildirimBaglaminiKapat();
   pencereKuyrugu=[]; pencereAcik=false; oncekiHiz=1;
   ortuKapat();
   kaydet(); /* bir sonraki günü beklemeden ANINDA kaydet — para düştü, istasyon oluştu,
@@ -2449,9 +2546,15 @@ function hesabiSil(){
 /* ================= kayıt ================= */
 function kaydet(){
   istasyonDurumunuKaydet(); /* canlı alanları D.istasyonlar[D.aktif]'e geri yaz, sonra kaydet */
-  try{ if(window.storage) window.storage.set("istasyon:kayit",JSON.stringify({D:D,oyuncu:oyuncu})); }catch(e){}
+  /* başka istasyonun bildirimi açıkken kaydedilirse, kayıt oyuncunun görüntülediği
+     istasyonda açılsın (yüklemede canlı alanlar D.istasyonlar[D.aktif]'ten yeniden kurulur) */
+  var kayitD=D;
+  if(pencereAcik && bildirimDonusIstasyonu!==null && bildirimDonusIstasyonu!==D.aktif && D.istasyonlar[bildirimDonusIstasyonu]){
+    kayitD=JSON.parse(JSON.stringify(D)); kayitD.aktif=bildirimDonusIstasyonu;
+  }
+  try{ if(window.storage) window.storage.set("istasyon:kayit",JSON.stringify({D:kayitD,oyuncu:oyuncu})); }catch(e){}
   if(firebaseUid){
-    fbDb.collection("oyuncular").doc(firebaseUid).set({D:D,oyuncu:oyuncu}, {merge:true})
+    fbDb.collection("oyuncular").doc(firebaseUid).set({D:kayitD,oyuncu:oyuncu}, {merge:true})
       .catch(function(e){ console.error("firestore kaydetme hatası:", e); });
   }
 }
